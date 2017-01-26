@@ -57,6 +57,7 @@ trait StringParserTerrain extends GameDef {
       def inRange(value: Int, size: Int) = value >= 0 && value < size
       inRange(p.row, levelVector.size) && inRange(p.col, levelVector.headOption.map(_.size).getOrElse(0))
     }
+
     withinBounds(p) && levelVector(p.row)(p.col) != '-'
   }
 
@@ -84,7 +85,7 @@ trait StringParserTerrain extends GameDef {
   }
 
   private lazy val vector: Vector[Vector[Char]] =
-    Vector(level.split("\n").map(str => Vector(str: _*)): _*)
+    Vector(level.replace("\r","").split("\n").map(str => Vector(str: _*)): _*)
 
   lazy val terrain: Terrain = terrainFunction(vector)
   lazy val startPos: Pos = findChar('S', vector)

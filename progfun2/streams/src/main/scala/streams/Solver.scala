@@ -44,12 +44,12 @@ trait Solver extends GameDef {
    */
   def newNeighborsOnly(neighbors: Stream[(Block, List[Move])],
                        explored: Set[Block]): Stream[(Block, List[Move])] = {
-    def alreadyExplored(move: (Block, List[Move])) = {
+    def notAlreadyExplored(move: (Block, List[Move])) = {
       val (block, _) = move
-      explored.contains(block)
+      !explored(block)
     }
 
-    neighbors.filterNot(alreadyExplored)
+    neighbors.filter(notAlreadyExplored)
   }
 
   /**
@@ -76,12 +76,13 @@ trait Solver extends GameDef {
    * construct the correctly sorted stream.
    */
   def from(initial: Stream[(Block, List[Move])],
-           explored: Set[Block]): Stream[(Block, List[Move])] = for {
-    (block, history) <- initial
-    unexplored = newNeighborsOnly(neighborsWithHistory(block, history), explored)
-    (block, _) <- unexplored
-    nextMove <- from(unexplored, Set(block) ++ explored)
-  } yield nextMove
+           explored: Set[Block]): Stream[(Block, List[Move])] = initial match {
+    case Stream.Empty => Stream.empty
+    case (block, moves) #:: rest =>
+      val alreadyExplored = explored + block
+      val neighbors = newNeighborsOnly(neighborsWithHistory(block, moves), alreadyExplored)
+      neighbors ++ from(rest ++ neighbors, alreadyExplored)
+  }
 
   /**
    * The stream of all paths that begin at the starting block.
@@ -110,11 +111,11 @@ trait Solver extends GameDef {
    * position.
    */
   lazy val solution: List[Move] = {
-    def moves(pair: (Block, List[Move])) = {
+    def movesFromStart(pair: (Block, List[Move])) = {
       val (_, movesToBlock) = pair
-      movesToBlock
+      movesToBlock.reverse
     }
 
-    pathsToGoal.headOption.toList.flatMap(moves)
+    pathsToGoal.headOption.map(movesFromStart).getOrElse(List.empty)
   }
 }
