@@ -1,5 +1,7 @@
 package example
 
+import scala.annotation.tailrec
+
 
 object Lists {
 
@@ -23,7 +25,16 @@ object Lists {
    * @param xs A list of natural numbers
    * @return The sum of all elements in `xs`
    */
-    def sum(xs: List[Int]): Int = ???
+    def sum(xs: List[Int]): Int = {
+      @tailrec
+      def loop(xs: List[Int], accu: Int): Int = {
+        if (xs.isEmpty) accu
+        else loop(xs.tail, xs.head + accu)
+      }
+
+      if (xs.isEmpty) 0
+      else loop(xs.tail, xs.head)
+    }
   
   /**
    * This method returns the largest element in a list of integers. If the
@@ -38,5 +49,14 @@ object Lists {
    * @return The largest element in `xs`
    * @throws java.util.NoSuchElementException if `xs` is an empty list
    */
-    def max(xs: List[Int]): Int = ???
+    def max(xs: List[Int]): Int = {
+      @tailrec
+      def loop(xs: List[Int], currentMax: Int): Int = {
+        if (xs.isEmpty) currentMax
+        else loop(xs.tail, if (xs.head > currentMax) xs.head else currentMax)
+      }
+
+      if (xs.isEmpty) throw new NoSuchElementException("sum of empty list")
+      else loop(xs.tail, xs.head)
+    }
   }
