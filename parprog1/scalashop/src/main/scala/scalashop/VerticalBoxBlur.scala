@@ -57,7 +57,7 @@ object VerticalBoxBlur {
 
     if (tasks == 1) blur(src, dst, 0, src.width, radius)
     else {
-      val stripeWidth: Int = src.width / tasks
+      val stripeWidth = src.width / tasks
 
       (0 to src.width by stripeWidth sliding(2, 1)).
         map { case list => task(blur(src, dst, list.head, list(1), radius)) }.
