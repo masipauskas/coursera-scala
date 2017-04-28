@@ -35,16 +35,14 @@ object HorizontalBoxBlurRunner {
 
 /** A simple, trivially parallelizable computation. */
 object HorizontalBoxBlur {
-
+  import scalashop.boxBlurKernel
   /** Blurs the rows of the source image `src` into the destination image `dst`,
    *  starting with `from` and ending with `end` (non-inclusive).
    *
    *  Within each row, `blur` traverses the pixels by going from left to right.
    */
   def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit = {
-  // TODO implement this method using the `boxBlurKernel` method
-
-  ???
+    for (x <- 0 until src.width; y <- from until end) dst.update(x, y, boxBlurKernel(src, x, y, radius))
   }
 
   /** Blurs the rows of the source image in parallel using `numTasks` tasks.
@@ -54,9 +52,15 @@ object HorizontalBoxBlur {
    *  rows.
    */
   def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit = {
-  // TODO implement using the `task` construct and the `blur` method
+    val tasks = if (src.height > numTasks) numTasks else src.height
 
-  ???
+    if (tasks == 1) blur(src, dst, 0, src.height - 1, radius)
+    else {
+      val stripeWidth: Int = src.height / tasks
+
+      (0 to (src.height - 1) by stripeWidth sliding(2, 1)).
+        map { case list => task(blur(src, dst, list.head, list(1), radius)) }.
+        foreach(_.join())
+    }
   }
-
 }
