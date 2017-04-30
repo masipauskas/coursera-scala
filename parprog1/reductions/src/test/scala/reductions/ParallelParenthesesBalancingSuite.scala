@@ -11,7 +11,6 @@ import ParallelParenthesesBalancing._
 
 @RunWith(classOf[JUnitRunner])
 class ParallelParenthesesBalancingSuite extends FunSuite {
-
   test("balance should work for empty string") {
     def check(input: String, expected: Boolean) =
       assert(balance(input.toArray) == expected,
@@ -45,5 +44,23 @@ class ParallelParenthesesBalancingSuite extends FunSuite {
     check(").", false)
   }
 
+  test("parBalance: '(if (zero? x) max (/ 1 x))' is balanced") {
+    assert(parBalance("(if (zero? x) max (/ 1 x))".toCharArray, 2))
+  }
 
+  test("parBalance: 'I told him ...' is parBalanced") {
+    assert(parBalance("I told him (that it's not (yet) done).\n(But he wasn't listening)".toCharArray, 2))
+  }
+
+  test("parBalance: ':-)' is unBalanced") {
+    assert(!parBalance(":-)".toCharArray, 2))
+  }
+
+  test("parBalance: counting is not enough") {
+    assert(!parBalance("())(".toCharArray, 2))
+  }
+
+  test("parBalance: should work for string of length 2 and threshold 1") {
+    assert(parBalance("()".toCharArray, 1))
+  }
 }
