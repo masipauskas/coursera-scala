@@ -105,5 +105,90 @@ class BlurSuite extends FunSuite {
     check(3, 2, 6)
   }
 
+  def parHorizontalBlurValidation(tasks: Int) = {
+    val w = 3
+    val h = 3
+    val src = new Img(w, h)
+    val dst = new Img(w, h)
+    src(0, 0) = 0; src(1, 0) = 1; src(2, 0) = 2
+    src(0, 1) = 3; src(1, 1) = 4; src(2, 1) = 5
+    src(0, 2) = 6; src(1, 2) = 7; src(2, 2) = 8
 
+    HorizontalBoxBlur.parBlur(src, dst, tasks, 1)
+
+    def check(x: Int, y: Int, expected: Int) =
+      assert(dst(x, y) == expected,
+        s"(destination($x, $y) should be $expected)")
+
+    check(0, 0, 2)
+    check(1, 0, 2)
+    check(2, 0, 3)
+    check(0, 1, 3)
+    check(1, 1, 4)
+    check(2, 1, 4)
+    check(0, 2, 5)
+    check(1, 2, 5)
+    check(2, 2, 6)
+  }
+
+  def parVerticalBlurValidation(tasks: Int) = {
+    val w = 4
+    val h = 3
+    val src = new Img(w, h)
+    val dst = new Img(w, h)
+    src(0, 0) = 0; src(1, 0) = 1; src(2, 0) = 2; src(3, 0) = 9
+    src(0, 1) = 3; src(1, 1) = 4; src(2, 1) = 5; src(3, 1) = 10
+    src(0, 2) = 6; src(1, 2) = 7; src(2, 2) = 8; src(3, 2) = 11
+
+    VerticalBoxBlur.parBlur(src, dst, tasks, 2)
+
+    def check(x: Int, y: Int, expected: Int) =
+      assert(dst(x, y) == expected,
+        s"(destination($x, $y) should be $expected)")
+
+    check(0, 0, 4)
+    check(1, 0, 5)
+    check(2, 0, 5)
+    check(3, 0, 6)
+    check(0, 1, 4)
+    check(1, 1, 5)
+    check(2, 1, 5)
+    check(3, 1, 6)
+    check(0, 2, 4)
+    check(1, 2, 5)
+    check(2, 2, 5)
+    check(3, 2, 6)
+  }
+
+  test("HorizontalBoxBlur.parBlur with radius 1 should correctly blur the entire 3x3 image with a number of tasks less than size") {
+    parHorizontalBlurValidation(2)
+  }
+
+  test("HorizontalBoxBlur.parBlur with radius 1 should correctly blur the entire 3x3 image with a single task") {
+    parHorizontalBlurValidation(1)
+  }
+
+  test("HorizontalBoxBlur.parBlur with radius 1 should correctly blur the entire 3x3 image with a 3 tasks") {
+    parHorizontalBlurValidation(3)
+  }
+
+  test("HorizontalBoxBlur.parBlur with radius 1 should correctly blur the entire 3x3 image with a 5 tasks") {
+    parHorizontalBlurValidation(5)
+  }
+
+  test("VerticalBoxBlur.parBlur with radius 1 should correctly blur the entire 4x3 image with a number of tasks less than size") {
+    parVerticalBlurValidation(2)
+  }
+
+  test("VerticalBoxBlur.parBlur with radius 1 should correctly blur the entire 4x3 image with a single task") {
+    parVerticalBlurValidation(1)
+  }
+
+  test("VerticalBoxBlur.parBlur with radius 1 should correctly blur the entire 4x3 image with a 4 tasks") {
+    parVerticalBlurValidation(4)
+  }
+
+  test("VerticalBoxBlur.parBlur with radius 1 should correctly blur the entire 4x3 image with a 5 tasks") {
+    parVerticalBlurValidation(5)
+  }
 }

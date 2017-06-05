@@ -37,7 +37,6 @@ object HorizontalBoxBlurRunner {
 
 /** A simple, trivially parallelizable computation. */
 object HorizontalBoxBlur {
-
   /** Blurs the rows of the source image `src` into the destination image `dst`,
    *  starting with `from` and ending with `end` (non-inclusive).
    *

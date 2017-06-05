@@ -37,29 +37,52 @@ object ParallelParenthesesBalancingRunner {
 }
 
 object ParallelParenthesesBalancing {
+  private def weight(char: Char) = char match {
+    case '(' => 1
+    case ')' => -1
+    case _ => 0
+  }
 
   /** Returns `true` iff the parentheses in the input `chars` are balanced.
    */
   def balance(chars: Array[Char]): Boolean = {
-    ???
+    @tailrec
+    def balance0(index: Int, until: Int, acc: Int): Boolean = {
+      if (index == until) acc == 0
+      else if (acc < 0) false
+      else balance0(index + 1, until, acc + weight(chars(index)))
+    }
+
+    balance0(0, chars.length, 0)
   }
 
   /** Returns `true` iff the parentheses in the input `chars` are balanced.
    */
   def parBalance(chars: Array[Char], threshold: Int): Boolean = {
 
-    def traverse(idx: Int, until: Int, arg1: Int, arg2: Int) /*: ???*/ = {
-      ???
+    @tailrec
+    def traverse(idx: Int, until: Int, openParenthesisCount: Int, closedParenthesisCount: Int): (Int, Int) = {
+      if (idx == until) (openParenthesisCount, closedParenthesisCount)
+      else {
+        chars(idx) match {
+          case '(' => traverse(idx + 1, until, openParenthesisCount + 1, closedParenthesisCount)
+          case ')' => traverse(idx + 1, until, openParenthesisCount, closedParenthesisCount + 1)
+          case _ => traverse(idx + 1, until, openParenthesisCount, closedParenthesisCount)
+        }
+      }
     }
 
-    def reduce(from: Int, until: Int) /*: ???*/ = {
-      ???
+    def reduce(from: Int, until: Int): (Int, Int) = {
+      val length = until - from
+      if (length <= threshold) traverse(from, until, 0, 0)
+      else {
+        val pivot = length / 2
+        val ((lOpen, lClosed), (rOpen, rClosed)) = parallel(reduce(from, from + pivot), reduce(from + pivot, until))
+        if (lOpen > rClosed) (lOpen - rClosed + rOpen, lClosed)
+        else (rOpen, rClosed + lClosed - lOpen)
+      }
     }
 
-    reduce(0, chars.length) == ???
+    reduce(0, chars.length) == (0, 0)
   }
-
-  // For those who want more:
-  // Prove that your reduction operator is associative!
-
 }

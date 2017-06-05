@@ -43,10 +43,13 @@ class KMeans {
   }
 
   def classify(points: GenSeq[Point], means: GenSeq[Point]): GenMap[Point, GenSeq[Point]] = {
-    ???
+    val classified = points.groupBy(findClosest(_, means))
+    means
+      .map(mean => (mean, classified.getOrElse(mean, GenSeq.empty)))
+      .toMap
   }
 
-  def findAverage(oldMean: Point, points: GenSeq[Point]): Point = if (points.length == 0) oldMean else {
+  def findAverage(oldMean: Point, points: GenSeq[Point]): Point = if (points.isEmpty) oldMean else {
     var x = 0.0
     var y = 0.0
     var z = 0.0
@@ -59,16 +62,21 @@ class KMeans {
   }
 
   def update(classified: GenMap[Point, GenSeq[Point]], oldMeans: GenSeq[Point]): GenSeq[Point] = {
-    ???
+    oldMeans.map(oldMean => findAverage(oldMean, classified(oldMean)))
   }
 
   def converged(eta: Double)(oldMeans: GenSeq[Point], newMeans: GenSeq[Point]): Boolean = {
-    ???
+    oldMeans.zip(newMeans)
+      .map { case (oldMean, newMean) => oldMean.squareDistance(newMean) <= eta }
+      .forall(converged => converged)
   }
 
   @tailrec
   final def kMeans(points: GenSeq[Point], means: GenSeq[Point], eta: Double): GenSeq[Point] = {
-    if (???) kMeans(???, ???, ???) else ??? // your implementation need to be tail recursive
+    val clustered = classify(points, means)
+    val meansForClusters = update(clustered, means)
+    if (converged(eta)(means, meansForClusters)) meansForClusters
+    else kMeans(points, meansForClusters, eta)
   }
 }
 
