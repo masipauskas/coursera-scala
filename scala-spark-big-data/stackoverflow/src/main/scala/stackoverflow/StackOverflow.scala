@@ -24,8 +24,8 @@ object StackOverflow extends StackOverflow {
     val raw     = rawPostings(lines)
     val grouped = groupedPostings(raw)
     val scored  = scoredPostings(grouped)
-    val vectors = vectorPostings(scored)
-//    assert(vectors.count() == 2121822, "Incorrect number of vectors: " + vectors.count())
+    val vectors = vectorPostings(scored).persist()
+    assert(vectors.count() == 2121822, "Incorrect number of vectors: " + vectors.count())
 
     val means   = kmeans(sampleVectors(vectors), vectors, debug = true)
     val results = clusterResults(means, vectors)
@@ -56,7 +56,6 @@ class StackOverflow extends Serializable {
   /** K-means parameter: Maximum iterations */
   def kmeansMaxIterations = 120
 
-
   //
   //
   // Parsing utilities:
@@ -75,16 +74,18 @@ class StackOverflow extends Serializable {
               tags =           if (arr.length >= 6) Some(arr(5).intern()) else None)
     })
 
-
+  def question(posting: Posting): Boolean = posting.postingType == 1
+  def answer(posting: Posting): Boolean = posting.postingType == 2
   /** Group the questions and answers together */
   def groupedPostings(postings: RDD[Posting]): RDD[(Int, Iterable[(Posting, Posting)])] = {
-    ???
+    val questions = postings.filter(question).map(question => (question.id, question))
+    val answers = postings.filter(answer).map(answer => (answer.parentId.get, answer))
+    questions.join(answers).groupByKey()
   }
 
 
   /** Compute the maximum score for each posting */
   def scoredPostings(grouped: RDD[(Int, Iterable[(Posting, Posting)])]): RDD[(Posting, Int)] = {
-
     def answerHighScore(as: Array[Posting]): Int = {
       var highScore = 0
           var i = 0
@@ -97,12 +98,16 @@ class StackOverflow extends Serializable {
       highScore
     }
 
-    ???
+    grouped
+      .mapValues(answers => (answers.head._1, answerHighScore(answers.map(_._2).toArray)))
+      .map(pair => pair._2)
   }
 
-
+  val kMeansLangIndex: Map[String, Int] = langs.zipWithIndex.map { case (lang, index) => (lang, index * langSpread) }.toMap
+  val kMeansLangReverseIndex: Map[Int, String] = kMeansLangIndex.map(pair => (pair._2, pair._1))
   /** Compute the vectors for the kmeans */
   def vectorPostings(scored: RDD[(Posting, Int)]): RDD[(Int, Int)] = {
+
     /** Return optional index of first language that occurs in `tags`. */
     def firstLangInTag(tag: Option[String], ls: List[String]): Option[Int] = {
       if (tag.isEmpty) None
@@ -117,7 +122,7 @@ class StackOverflow extends Serializable {
       }
     }
 
-    ???
+    scored.map { case (post, score) => (kMeansLangIndex(post.tags.get), score)}
   }
 
 
@@ -273,10 +278,12 @@ class StackOverflow extends Serializable {
     val closestGrouped = closest.groupByKey()
 
     val median = closestGrouped.mapValues { vs =>
-      val langLabel: String   = ??? // most common language in the cluster
-      val langPercent: Double = ??? // percent of the questions in the most common language
-      val clusterSize: Int    = ???
-      val medianScore: Int    = ???
+      val topLanguageMentions = vs.groupBy(pair => pair._1).toSeq.sortBy(pair => pair._2.size)(Ordering.Int.reverse).head
+      val topLanguageSize = topLanguageMentions._2.size
+      val langLabel: String   = kMeansLangReverseIndex(topLanguageMentions._1)
+      val langPercent: Double = topLanguageSize / vs.size * 100
+      val clusterSize: Int    = vs.size
+      val medianScore: Int    = vs.map(pair => pair._2).sum / clusterSize
 
       (langLabel, langPercent, clusterSize, medianScore)
     }
