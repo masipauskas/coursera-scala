@@ -62,15 +62,20 @@ object TimeUsage {
     *         have type Double. None of the fields are nullable.
     * @param columnNames Column names of the DataFrame
     */
-  def dfSchema(columnNames: List[String]): StructType =
-    ???
+  def dfSchema(columnNames: List[String]): StructType = {
+    def withColumn(schema: StructType, name: String, dataType: String) = schema.add(name, dataType, nullable = false)
 
+    val schema = new StructType()
+    columnNames.tail.foldLeft(withColumn(schema, columnNames.head, "string"))((s, name) => withColumn(s, name, "double"))
+  }
 
   /** @return An RDD Row compatible with the schema produced by `dfSchema`
     * @param line Raw fields
     */
-  def row(line: List[String]): Row =
-    ???
+  def row(line: List[String]): Row = {
+    val row = Seq(line.head) ++ line.tail.map(_.toDouble)
+    Row(row: _*)
+  }
 
   /** @return The initial data frame columns partitioned in three groups: primary needs (sleeping, eating, etc.),
     *         work and other (leisure activities)
@@ -88,7 +93,32 @@ object TimeUsage {
     *    “t10”, “t12”, “t13”, “t14”, “t15”, “t16” and “t18” (those which are not part of the previous groups only).
     */
   def classifiedColumns(columnNames: List[String]): (List[Column], List[Column], List[Column]) = {
-    ???
+    val discard = 0
+    val primary = 1
+    val working = 2
+    val leisure = 3
+
+    def withPrefix(prefixes: String*)(name: String) = prefixes.exists(prefix => name.startsWith(prefix))
+    val isPrimary: String => Boolean = withPrefix("t01", "t03", "t11", "t1801", "t1803")
+    val isWorking: String => Boolean = withPrefix("t05", "t1805")
+    val isLeisure: String => Boolean = withPrefix("t02", "t04", "t06", "t07", "t08", "t09", "t10", "t12", "t13", "t14", "t15", "t16", "t18")
+
+    def createClassifiedColumn(name: String) = {
+      val category = if (isPrimary(name)) primary
+      else if (isWorking(name)) working
+      else if (isLeisure(name)) leisure
+      else discard
+      (category, new Column(name))
+    }
+
+
+    val columns = columnNames
+      .map(createClassifiedColumn)
+      .groupBy(_._1)
+      .map(pair => (pair._1, pair._2.map(_._2)))
+
+
+    (columns(primary), columns(working), columns(leisure))
   }
 
   /** @return a projection of the initial DataFrame such that all columns containing hours spent on primary needs
@@ -127,13 +157,23 @@ object TimeUsage {
     otherColumns: List[Column],
     df: DataFrame
   ): DataFrame = {
-    val workingStatusProjection: Column = ???
-    val sexProjection: Column = ???
-    val ageProjection: Column = ???
+    def aggregateAndConvertToHours(columns: List[Column]): Column = columns.tail.foldLeft(columns.head)((left, right) => left.plus(right)).divide(60)
 
-    val primaryNeedsProjection: Column = ???
-    val workProjection: Column = ???
-    val otherProjection: Column = ???
+    val workingStatusProjection: Column = when($"telfs" < 3 and $"telfs" >= 1, "working")
+      .otherwise("not working")
+      .name("working")
+    val sexProjection: Column = when($"tesex" === 1, "male")
+      .otherwise("female")
+      .name("sex")
+    val ageProjection: Column = when($"teage" <= 22 and $"teage" >= 15, "young")
+        .when($"teage" <= 55 and $"teage" >= 23, "active")
+        .otherwise("elder")
+        .name("age")
+
+
+    val primaryNeedsProjection: Column = aggregateAndConvertToHours(primaryNeedsColumns).name("primaryNeeds")
+    val workProjection: Column = aggregateAndConvertToHours(workColumns).name("work")
+    val otherProjection: Column = aggregateAndConvertToHours(otherColumns).name("other")
     df
       .select(workingStatusProjection, sexProjection, ageProjection, primaryNeedsProjection, workProjection, otherProjection)
       .where($"telfs" <= 4) // Discard people who are not in labor force
@@ -157,7 +197,11 @@ object TimeUsage {
     * Finally, the resulting DataFrame should be sorted by working status, sex and age.
     */
   def timeUsageGrouped(summed: DataFrame): DataFrame = {
-    ???
+    def roundedAverage(column: Column, columnName: String) = round(avg(column)).name(columnName)
+    summed.select($"working", $"sex", $"age", $"primaryNeeds", $"work", $"other")
+      .groupBy($"working", $"sex", $"age")
+      .agg(roundedAverage($"primaryNeeds", "primaryNeeds"), roundedAverage($"work", "work"), roundedAverage($"other", "other"))
+      .orderBy($"working", $"sex", $"age")
   }
 
   /**
@@ -174,7 +218,9 @@ object TimeUsage {
     * @param viewName Name of the SQL view to use
     */
   def timeUsageGroupedSqlQuery(viewName: String): String =
-    ???
+    s"select working, sex, age, round(avg(primaryNeeds)) as primaryNeeds, round(avg(work)) as work, round(avg(other)) as other from $viewName" +
+    "  group by working, sex, age" +
+    "  order by working, sex, age"
 
   /**
     * @return A `Dataset[TimeUsageRow]` from the “untyped” `DataFrame`
