@@ -20,7 +20,21 @@ object Extraction {
   }
 
   def locateTemperaturesRDD(year: Int, stations: RDD[String], temperatures: RDD[String]): RDD[(LocalDate, Location, Double)] = {
-    ???
+    import observatory.utils.Parser._
+    val validStations = stations
+      .map(parseStation)
+      .filter(isValid)
+      .map(opt => opt.get)
+
+    val validTemperatures = temperatures
+      .map(parseObservation(_, year))
+      .filter(isValid)
+      .map(opt => (opt.get._1, (opt.get._2, opt.get._3)))
+
+    validStations
+      .join(validTemperatures)
+      .mapValues { case (location, (date, temperature)) => (date, location, temperature) }
+      .values
   }
 
   /**
