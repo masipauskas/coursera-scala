@@ -2,6 +2,8 @@ package observatory
 
 import java.time.LocalDate
 
+import org.apache.spark.rdd.RDD
+
 /**
   * 1st milestone: data extraction
   */
@@ -14,6 +16,10 @@ object Extraction {
     * @return A sequence containing triplets (date, location, temperature)
     */
   def locateTemperatures(year: Int, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Double)] = {
+    ???
+  }
+
+  def locateTemperaturesRDD(year: Int, stations: RDD[String], temperatures: RDD[String]): RDD[(LocalDate, Location, Double)] = {
     ???
   }
 
