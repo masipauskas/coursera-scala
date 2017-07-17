@@ -1,0 +1,1 @@
+Download the dataset from: http://alaska.epfl.ch/files/scala-capstone-data.zip and unzip to the resources directory (where this file is)
