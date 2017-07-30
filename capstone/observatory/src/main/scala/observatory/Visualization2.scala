@@ -1,6 +1,6 @@
 package observatory
 
-import com.sksamuel.scrimage.{Image, Pixel}
+import com.sksamuel.scrimage.Image
 
 /**
   * 5th milestone: value-added information visualization
@@ -25,7 +25,7 @@ object Visualization2 {
     d10: Double,
     d11: Double
   ): Double = {
-    ???
+    UnitSquare.interpolate(UnitSquare(x, y, d00, d01, d10, d11))
   }
 
   /**
@@ -43,7 +43,43 @@ object Visualization2 {
     x: Int,
     y: Int
   ): Image = {
-    ???
+    import observatory.utils.TileVisualizer.tile
+
+    val temperature: Location => Double = (location) => {
+      val square = UnitSquare.calculate(location, grid)
+      UnitSquare.interpolate(square)
+    }
+
+    tile(temperature, colors, zoom, x, y)
   }
 
+
+
+}
+
+case class UnitSquare(x: Double, y: Double, d00: Double, d01: Double, d10: Double, d11: Double)
+
+object UnitSquare {
+  def interpolate(data: UnitSquare): Double = {
+    data.d00 * (1 - data.x) * (1 - data.y) + data.d10 * data.x * (1 - data.y) + data.d01 * (1 - data.x) * data.y + data.d11 * data.x * data.y
+  }
+
+  def calculate(location: Location, grid: (Int, Int) => Double): UnitSquare = {
+    import math._
+
+    val topLeftLatitude = ceil(location.lat).toInt
+    val topLeftLongitude = ceil(location.lon).toInt
+    val bottomRightLatitude = floor(location.lat).toInt
+    val bottomRightLongitude = floor(location.lon).toInt
+
+    val longitude = location.lon - bottomRightLongitude
+    val latitude = location.lat - topLeftLatitude
+
+    UnitSquare(longitude, latitude,
+      grid(topLeftLatitude, topLeftLongitude),
+      grid(bottomRightLatitude, topLeftLongitude),
+      grid(topLeftLatitude, bottomRightLongitude),
+      grid(bottomRightLatitude, bottomRightLongitude)
+    )
+  }
 }

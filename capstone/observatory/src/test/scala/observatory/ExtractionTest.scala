@@ -8,7 +8,7 @@ import org.scalatest.junit.JUnitRunner
 import org.scalactic.Equality
 
 @RunWith(classOf[JUnitRunner])
-class ExtractionTest extends FunSuite with TestingContext with Matchers {
+trait  ExtractionTest extends FunSuite with TestingContext with Matchers {
   import Extraction._
 
   private val stations = Seq(

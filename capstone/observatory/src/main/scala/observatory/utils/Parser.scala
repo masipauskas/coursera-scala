@@ -28,7 +28,7 @@ object Parser {
 
   def isValid[T](entry: Option[T]): Boolean = entry.isDefined
 
-  private def stationKey(stn: String, wban: String) = s"${stn.trim}${wban.trim}"
+  private def stationKey(stn: String, wban: String) = if (stn.trim.isEmpty && wban.trim.isEmpty) None else Some(s"${stn.trim}:${wban.trim}")
 
   def parseStation(line: String): Option[(String, Location)] = {
     val components = tokenise(line)
@@ -40,14 +40,16 @@ object Parser {
 
     val key = stationKey(valueOrEmpty(components, 0), valueOrEmpty(components, 1))
 
-    location.map { l => (key, l)}
+    for {
+      loc <- location
+      station <- key
+    } yield (station, loc)
   }
 
   def parseObservation(line: String, year: Int): Option[(String, LocalDate, Double)] = {
     import Temperature.fahrenheitToCelsius
 
     val components = tokenise(line)
-    val key = stationKey(valueOrEmpty(components, 0), valueOrEmpty(components, 1))
 
     for {
       month <- parseEntry(components, 2, _.toInt)
@@ -58,6 +60,8 @@ object Parser {
 
       celsius = fahrenheitToCelsius(fahrenheit)
       date = LocalDate.of(year, month, day)
-    } yield (key, date, celsius)
+
+      station <- stationKey(valueOrEmpty(components, 0), valueOrEmpty(components, 1))
+    } yield (station, date, celsius)
   }
 }

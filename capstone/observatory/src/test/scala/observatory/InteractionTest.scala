@@ -7,7 +7,6 @@ import org.scalatest.prop.Checkers
 
 import scala.collection.concurrent.TrieMap
 
-@RunWith(classOf[JUnitRunner])
-class InteractionTest extends FunSuite with Checkers {
+trait InteractionTest extends FunSuite with Checkers {
 
 }

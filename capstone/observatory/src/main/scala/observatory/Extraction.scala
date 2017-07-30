@@ -2,12 +2,13 @@ package observatory
 
 import java.time.LocalDate
 
+import observatory.utils.Context
 import org.apache.spark.rdd.RDD
 
 /**
   * 1st milestone: data extraction
   */
-object Extraction {
+object Extraction extends Context {
 
   /**
     * @param year             Year number
@@ -16,7 +17,10 @@ object Extraction {
     * @return A sequence containing triplets (date, location, temperature)
     */
   def locateTemperatures(year: Int, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Double)] = {
-    ???
+    val stations = readFile(stationsFile)
+    val temperatures = readFile(temperaturesFile)
+
+    locateTemperaturesRDD(year, stations, temperatures).collect()
   }
 
   def locateTemperaturesRDD(year: Int, stations: RDD[String], temperatures: RDD[String]): RDD[(LocalDate, Location, Double)] = {
@@ -42,7 +46,12 @@ object Extraction {
     * @return A sequence containing, for each location, the average temperature over the year.
     */
   def locationYearlyAverageRecords(records: Iterable[(LocalDate, Location, Double)]): Iterable[(Location, Double)] = {
-    ???
+    records
+      .groupBy(_._2)
+      .mapValues { grouped =>
+        val temperatures = grouped.map(value => value._3).toSeq
+        temperatures.sum / temperatures.length
+      }
   }
 
 }
